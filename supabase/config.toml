@@ -1,0 +1,13 @@
+project_id = "tieqhqsqdbuetufapnpz"
+
+[functions.booking-agent]
+verify_jwt = true
+
+[functions.reminder-agent]
+verify_jwt = true
+
+[functions.questionnaire-agent]
+verify_jwt = true
+
+[functions.analytics]
+verify_jwt = true

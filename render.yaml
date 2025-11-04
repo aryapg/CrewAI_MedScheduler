@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: medscheduler-backend
+    env: python
+    plan: free
+    autoDeploy: true
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: CORS_ORIGINS
+        value: '["*"]'
+      # Optional toggles for local-like behavior in cloud. Set to false as you wire real services.
+      - key: USE_MOCK_AI
+        value: "true"
+      - key: USE_MOCK_EMAIL
+        value: "true"
+      - key: USE_MOCK_SMS
+        value: "true"
+      # Security: Render will generate a strong secret at deploy time
+      - key: SECRET_KEY
+        generateValue: true
+
+  - type: web
+    name: medscheduler-frontend
+    env: static
+    plan: free
+    autoDeploy: true
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    # Set this after the first deploy to your backend URL, e.g. https://medscheduler-backend.onrender.com
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: ""
+      # Supabase keys from env.txt (copy values here or set in Render dashboard)
+      - key: VITE_SUPABASE_PROJECT_ID
+        value: ""
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        value: ""
+      - key: VITE_SUPABASE_URL
+        value: ""
+
