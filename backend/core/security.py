@@ -17,13 +17,35 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
 
+def normalize_password(password: str) -> str:
+    """
+    Ensure password is a clean UTF-8 string and within bcrypt's 72-byte limit.
+    Strips whitespace and prevents unexpected encoding errors.
+    """
+    if not isinstance(password, str):
+        password = str(password)
+
+    # Trim spaces and enforce byte-length limit
+    password = password.strip()
+    encoded = password.encode("utf-8")
+
+    if len(encoded) > 72:
+        # Bcrypt only supports up to 72 bytes
+        encoded = encoded[:72]
+        password = encoded.decode("utf-8", errors="ignore")
+
+    return password
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against a hash."""
+    plain_password = normalize_password(plain_password)
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password."""
+    """Hash a password safely within bcrypt's 72-byte limit."""
+    password = normalize_password(password)
     return pwd_context.hash(password)
 
 
@@ -34,7 +56,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+
     to_encode.update({"exp": expire, "iat": datetime.utcnow()})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
@@ -56,24 +78,24 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     """
     token = credentials.credentials
     payload = decode_access_token(token)
-    
+
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     user_id: str = payload.get("sub")
     user_role: str = payload.get("role", "patient")
-    
+
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     return {"user_id": user_id, "role": user_role}
 
 
@@ -90,4 +112,3 @@ def require_role(allowed_roles: list[str]):
             )
         return current_user
     return role_checker
-
