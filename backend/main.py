@@ -207,11 +207,13 @@ async def global_exception_handler(request, exc):
 
 if __name__ == "__main__":
     import uvicorn
+    import os
+
+    port = int(os.environ.get("PORT", 8000))  # use Render’s PORT if available
     uvicorn.run(
         "main:app",
-        host=settings.HOST,
-        port=settings.PORT,
-        reload=True,
+        host="0.0.0.0",  # bind to all interfaces (required by Render)
+        port=port,
         log_level="info"
     )
 
